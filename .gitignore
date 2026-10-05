@@ -1,0 +1,18 @@
+# Unpacked zip and working directories
+candidate/
+candidate.zip
+
+# Scattered files in root (clean copy is in research_pack/)
+/businessdaily_2026-08-09.md
+/ir_concall_2026-08-11.md
+/ir_press_release_2026-08-08.md
+/marketwatchindia_2024-03-18.md
+/multibaggeralerts_2026-08-12.md
+/nagpurcitytimes_2026-08-20.md
+/nse_announcement_2026-09-02.md
+/nse_shareholding_2026-07-15.md
+
+# Python
+__pycache__/
+*.pyc
+.env
