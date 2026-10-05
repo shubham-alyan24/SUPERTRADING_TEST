@@ -20,6 +20,24 @@ sys.stdout.reconfigure(encoding='utf-8')
 from groq import Groq
 
 
+def load_env(env_path: str = ".env") -> None:
+    """Load key-value pairs from a .env file into os.environ if present."""
+    if os.path.exists(env_path):
+        with open(env_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, val = line.split("=", 1)
+                    key = key.strip()
+                    val = val.strip().strip("'\"")
+                    if key and key not in os.environ:
+                        os.environ[key] = val
+
+
+# Automatically load .env on import/start
+load_env()
+
+
 def load_system_prompt(path: str = "system_prompt.md") -> str:
     """Load the system prompt from a markdown file."""
     with open(path, "r", encoding="utf-8") as f:
@@ -93,7 +111,7 @@ def build_user_prompt(ticker: str, today: str, documents: list[dict]) -> str:
     )
 
 
-def run_agent(ticker: str, pack_dir: str, today: str, model_name: str = "openai/gpt-oss-120b") -> str:
+def run_agent(ticker: str, pack_dir: str, today: str, model_name: str = "openai/gpt-oss-120b", api_key: str | None = None) -> str:
     """
     Run the research agent pipeline:
     1. Load system prompt
@@ -102,13 +120,14 @@ def run_agent(ticker: str, pack_dir: str, today: str, model_name: str = "openai/
     4. Return the generated research brief
     """
     # Configure API
-    api_key = os.environ.get("GROQ_API_KEY")
-    if not api_key:
-        print("Error: GROQ_API_KEY environment variable not set.")
+    key = api_key or os.environ.get("GROQ_API_KEY")
+    if not key:
+        print("Error: GROQ_API_KEY not set.")
+        print("Either create a .env file with GROQ_API_KEY=..., pass --api-key <key>, or set the env variable.")
         print("Get a free key at: https://console.groq.com/keys")
         sys.exit(1)
 
-    client = Groq(api_key=api_key)
+    client = Groq(api_key=key)
 
     # Phase 1: Ingest
     print(f"[Phase 1] Loading documents from '{pack_dir}'...")
@@ -158,6 +177,10 @@ def main():
         help="Groq model name (default: openai/gpt-oss-120b)"
     )
     parser.add_argument(
+        "--api-key", default=None,
+        help="Groq API key (optional; defaults to GROQ_API_KEY in .env or environment)"
+    )
+    parser.add_argument(
         "--output", default=None,
         help="Output file path (default: output/<ticker>_brief.md)"
     )
@@ -165,7 +188,7 @@ def main():
     args = parser.parse_args()
 
     # Run the agent
-    brief = run_agent(args.ticker, args.pack, args.date, args.model)
+    brief = run_agent(args.ticker, args.pack, args.date, args.model, api_key=args.api_key)
 
     # Save output
     output_path = args.output or os.path.join("output", f"{args.ticker.lower()}_brief.md")
